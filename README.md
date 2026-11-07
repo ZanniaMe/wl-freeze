@@ -1,3 +1,7 @@
+# This Fork 
+
+this fork adds two new parameter, one to force suspend and one to force resume
+
 # ❄️ wl-freeze 
 
 **wl-freeze** is a community-driven utility to **suspend a game process** (and other programs) in Wayland compositors.
@@ -58,7 +62,7 @@ Available in [nixpkgs](https://search.nixos.org/packages?channel=unstable&query=
 
 Clone this repo and symlink the `wl-freeze` script to a directory in your `PATH`:
 ```bash
-git clone https://github.com/Zerodya/wl-freeze.git
+git clone https://github.com/ZanniaMe/wl-freeze.git
 ln -s $(pwd)/wl-freeze/wl-freeze $HOME/.local/bin
 ```
 **Shell Completions**
@@ -118,6 +122,9 @@ bindsym Pause exec wl-freeze -a
 -p, --pid             toggle suspend by process id
 -n, --name            toggle suspend by process name/command
 -c, --custom          toggle suspend by custom command (outputs a PID)
+
+-f, --freeze          force to suspend no matter the current state of the process
+-r, --resume          force to resume no matter the current state of the process
 
 -s, --silent          don't send notification
 -t, --notif-timeout   notification timeout in milliseconds (default 5000)
