@@ -10,6 +10,9 @@ declare -i NOTIF_TIMEOUT=5000
 declare -i DRYRUN=0
 declare -i DEBUG=0
 declare -i NO_XWAYLAND_MOUSE_RELEASE=0
+declare -i FORCE_FREEZE=0
+declare -i FORCE_RESUME=0
+
 
 declare MODE=""      # active | pid | name | custom
 declare TARGET=""    # argument of the selected mode
@@ -52,6 +55,9 @@ Options:
   -p, --pid             toggle suspend by process id
   -n, --name            toggle suspend by process name/command
   -c, --custom          toggle suspend by custom command (outputs a PID)
+
+  -f, --freeze          force to suspend no matter the current state of the process
+  -r, --resume          force to resume no matter the current state of the process
 
   -s, --silent          don't send notification
   -t, --notif-timeout   notification timeout in milliseconds (default 5000)
@@ -315,13 +321,29 @@ function toggleFreeze() {
   read -r state < <(ps -p "$PID" -o state= 2>/dev/null)
   PROC_NAME=$(ps -p "$PID" -o comm= 2>/dev/null) || PROC_NAME="Unknown"
 
-  if [[ "${state:-}" == T ]]; then
-    ACTION="Resumed"
-    signal=CONT
-  else
+  if [[ $FORCE_FREEZE -eq 1 && $FORCE_RESUME -eq 1 ]] ; then
+    die "Only one of -f or -r can be used"
+  fi
+
+  if [[ $FORCE_FREEZE -eq 0 && $FORCE_RESUME -eq 0 ]] ; then
+    if [[ "${state:-}" == T ]]; then
+      ACTION="Resumed"
+      signal=CONT
+    else
+      ACTION="Suspended"
+      signal=STOP
+    fi
+  fi
+
+  if [[ $FORCE_FREEZE -eq 1 ]] ; then
     ACTION="Suspended"
     signal=STOP
   fi
+  if [[ $FORCE_RESUME -eq 1 ]] ; then
+    ACTION="Resumed"
+    signal=CONT
+  fi
+
 
   if (( DRYRUN )); then
     debugPrint "Dry-run: not sending SIG$signal"
@@ -373,8 +395,8 @@ function setMode() {
 
 function args() {
   local parsed
-  parsed=$(getopt -o hap:n:c:st: \
-    --long help,active,pid:,name:,custom:,silent,notif-timeout:,dry-run,debug,no-xwayland-mouse-release \
+  parsed=$(getopt -o hap:n:c:sfrt: \
+    --long help,active,pid:,name:,custom:,silent,freeze,resume,notif-timeout:,dry-run,debug,no-xwayland-mouse-release \
     -n "$(basename "$0")" -- "$@") || exit 1
 
   eval set -- "$parsed"
@@ -386,6 +408,8 @@ function args() {
       -n|--name)          shift; setMode name "$1" ;;
       -c|--custom)        shift; setMode custom "$1" ;;
       -s|--silent)        SILENT=1 ;;
+      -f|--freeze)        FORCE_FREEZE=1 ;;
+      -r|--resume)        FORCE_RESUME=1 ;;
       -t|--notif-timeout) shift
                           [[ "$1" =~ ^[0-9]+$ ]] || die "Invalid notification timeout: $1"
                           NOTIF_TIMEOUT=$1 ;;
